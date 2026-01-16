@@ -1,8 +1,9 @@
 // TERMINOLOGY
 // Position - index in the board
 
-function Player(symbol){
+function Player(name, symbol){
     if(!new.target) throw Error("Must be called with new operator!");
+    this.name = name;
     this.symbol = symbol;
 }
 
@@ -64,17 +65,12 @@ const eventBroadcaster = (
             console.log(`${type} Event raised!`);
         }
 
-        function reset(){
-            events = {};
-        }
-
         return{
             createEvent,
             deleteEvent,
             raiseEvent,
             subscribe,
-            unsubscribe,
-            reset
+            unsubscribe
         }
     }
 )();
@@ -101,7 +97,6 @@ const screenController = (function(doc){
     
     eventBroadcaster.subscribe("GameOver", handleGameOver);
     eventBroadcaster.subscribe("UpdateBoard", handleBoardUpdate);
-    eventBroadcaster.subscribe("GameWin", handleGameWin);
     eventBroadcaster.subscribe("PlayerChange", handlePlayerChange);
 
     // Event Handling
@@ -109,12 +104,12 @@ const screenController = (function(doc){
 
 
     closeModalBtn.addEventListener('click', () => {
+        eventBroadcaster.raiseEvent("RestartGame");
+
         for(let cell of cells){
             cell.dataset.symbol = "_";
             delete cell.dataset.highlight;
         }
-        
-        eventBroadcaster.raiseEvent("RestartGame");
 
         gameoverModal.close();
     })
@@ -123,14 +118,15 @@ const screenController = (function(doc){
         if(turnLabel) turnLabel.textContent = `${player.symbol}'s turn`;
     }
 
-    function handleGameWin(pattern){
-        for(let i of pattern){
-            cells[i].dataset.highlight = '';
+    function handleGameOver(result){
+        if(!result) return;
+        if(result.winPattern) {
+            for(let i of result.winPattern){
+                cells[i].dataset.highlight = '';
+            }
         }
-    }
 
-    function handleGameOver(message){
-        if(gameoverText) gameoverText.textContent = message;
+        if(gameoverText && result.message) gameoverText.textContent = result.message;
         gameoverModal.showModal();
     }
 
@@ -199,7 +195,7 @@ const board = (
 
 const gameController = (
     function(board){
-        const players = [new Player("X"), new Player("O")];
+        const players = [new Player("Player 1", "X"), new Player("Player 2", "O")];
         let currentPlayerIndex = 0;
 
         initializeController();
@@ -243,13 +239,12 @@ const gameController = (
         };
 
         function concludeRound(symbol) {
-            const winPatten =  (winPositions.find(pattern => !pattern.some(pos => board.getSymbolAt(pos) !== symbol)));
-            if(winPatten){
-                eventBroadcaster.raiseEvent("GameWin", winPatten);
-                eventBroadcaster.raiseEvent("GameOver", `The winner is ${symbol}`);
+            const winPattern =  (winPositions.find(pattern => !pattern.some(pos => board.getSymbolAt(pos) !== symbol)));
+            if(winPattern){
+                eventBroadcaster.raiseEvent("GameOver", {message: `The winner is ${symbol}`, winPattern});
             }
             else if(board.getEmptyCellsCount() === 0){
-                eventBroadcaster.raiseEvent("GameOver", "The game ended in a tie.")
+                eventBroadcaster.raiseEvent("GameOver", {message: "The game ended in a tie."})
             }else{
                 switchPlayer(currentPlayerIndex + 1);
             }

@@ -37,7 +37,7 @@ header{
 #board{
     display: grid;
     padding: 16px;
-    gap: 8px;
+    gap: 16px;
     
     border-radius: 32px;
     
@@ -80,6 +80,7 @@ header{
 
 .cell:hover{
     box-shadow: 0 0 10px 5px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
 }
 .cell[data-highlight]{
     background-color: #008080;
